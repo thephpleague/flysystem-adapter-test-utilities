@@ -14,6 +14,7 @@ use League\Flysystem\DirectoryAttributes;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
 use League\Flysystem\StorageAttributes;
+use League\Flysystem\UnableToCopyFile;
 use League\Flysystem\UnableToMoveFile;
 use League\Flysystem\UnableToProvideChecksum;
 use League\Flysystem\UnableToReadFile;
@@ -151,7 +152,9 @@ abstract class FilesystemAdapterTestCase extends TestCase
             $adapter = $this->adapter();
             $writeStream = stream_with_contents('contents');
 
-            $adapter->writeStream('path.txt', $writeStream, new Config());
+            $adapter->writeStream('path.txt', $writeStream, new Config([
+                Config::OPTION_VISIBILITY => Visibility::PUBLIC,
+            ]));
 
             if (is_resource($writeStream)) {
                 fclose($writeStream);
@@ -592,7 +595,20 @@ abstract class FilesystemAdapterTestCase extends TestCase
             $this->assertTrue($adapter->fileExists('source.txt'));
             $this->assertTrue($adapter->fileExists('destination.txt'));
             $this->assertEquals(Visibility::PUBLIC, $adapter->visibility('destination.txt')->visibility());
+            $this->assertEquals('text/plain', $adapter->mimeType('destination.txt')->mimeType());
             $this->assertEquals('contents to be copied', $adapter->read('destination.txt'));
+        });
+    }
+
+    /**
+     * @test
+     */
+    public function copying_a_file_that_does_not_exist(): void
+    {
+        $this->expectException(UnableToCopyFile::class);
+
+        $this->runScenario(function () {
+            $this->adapter()->copy('source.txt', 'destination.txt', new Config());
         });
     }
 
@@ -640,6 +656,7 @@ abstract class FilesystemAdapterTestCase extends TestCase
                 'After moving, a file should be present at the new location.'
             );
             $this->assertEquals(Visibility::PUBLIC, $adapter->visibility('destination.txt')->visibility());
+            $this->assertEquals('text/plain', $adapter->mimeType('destination.txt')->mimeType());
             $this->assertEquals('contents to be copied', $adapter->read('destination.txt'));
         });
     }
