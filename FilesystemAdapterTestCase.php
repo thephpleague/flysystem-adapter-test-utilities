@@ -824,6 +824,58 @@ abstract class FilesystemAdapterTestCase extends TestCase
         });
     }
 
+    /**
+     * @test
+     */
+    public function moving_a_file_with_collision(): void
+    {
+        $this->runScenario(function () {
+            $adapter = $this->adapter();
+            $adapter->write('path.txt', 'new contents', new Config());
+            $adapter->write('new-path.txt', 'contents', new Config());
+
+            $adapter->move('path.txt', 'new-path.txt', new Config());
+
+            $oldFileExists = $adapter->fileExists('path.txt');
+            $this->assertFalse($oldFileExists);
+
+            $contents = $adapter->read('new-path.txt');
+            $this->assertEquals('new contents', $contents);
+        });
+    }
+
+    /**
+     * @test
+     */
+    public function copying_a_file_with_same_destination(): void
+    {
+        $this->runScenario(function () {
+            $adapter = $this->adapter();
+            $adapter->write('path.txt', 'new contents', new Config());
+
+            $adapter->copy('path.txt', 'path.txt', new Config());
+            $contents = $adapter->read('path.txt');
+
+            $this->assertEquals('new contents', $contents);
+        });
+    }
+
+    /**
+     * @test
+     */
+    public function moving_a_file_with_same_destination(): void
+    {
+        $this->runScenario(function () {
+            $adapter = $this->adapter();
+            $adapter->write('path.txt', 'new contents', new Config());
+
+            $adapter->move('path.txt', 'path.txt', new Config());
+
+            $contents = $adapter->read('path.txt');
+            $this->assertEquals('new contents', $contents);
+        });
+    }
+
     protected function assertFileExistsAtPath(string $path): void
     {
         $this->runScenario(function () use ($path) {
